@@ -3,10 +3,10 @@ import time
 import torch
 import tool
 from enviroment import Env
-from mm_loader import Loader4MM
-from milk_model import MILK_model
-from milk_session import MILK_session
-from invRL_session import InvRL
+from dataset_loader import Loader4MM
+from model import MILK_model
+from session import MILK_session
+# from invRL_session import InvRL
 
 
 def parse_args():   
@@ -40,6 +40,8 @@ def parse_args():
     parser.add_argument('--penalty_coeff', type=float, default=50) # b 1000  c 50
     parser.add_argument('--max_info_coeff', type=float, default=0.05) # b 0.1   c 0.05
     parser.add_argument('--min_info_coeff', type=float, default=0.05) # b 0.1   c 0.05
+
+    parser.add_argument('--missing_rate', type=float, default=0.3)
 
     parser.add_argument('--alpha', type=float, default=0.1)
     # ----------------------- logger
@@ -75,15 +77,7 @@ tool.cprint('Init Model')
 
 # ----------------------------------- Session Init -----------------------------------------------------------
 
-if args.model == 'MILK':
-    my_session = MILK_session(my_env, my_model, my_loader)
-elif args.model == 'InvRL':
-    my_session = InvRL(my_env, my_model, my_loader)
-else:
-    raise Exception('unknown model type', args.model)
-
-
-
+my_session = MILK_session(my_env, my_model, my_loader)
 tool.cprint('Init Session')
 
 # ---------------------------------------- Main -----------------------------------------------------------

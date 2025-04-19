@@ -10,7 +10,7 @@ import numpy as np
 
 import criterion
 import tool
-import mm_loader
+import dataset_loader
 import evaluation
 # from metric import evaluation
 
@@ -44,7 +44,7 @@ class MILK_session(object):
         t = time.time()
         self.model.train()
         self.total_epoch += 1
-        S = mm_loader.PairSample(self.dataset)
+        S = dataset_loader.PairSample(self.dataset)
         users = torch.Tensor(S[:, 0]).long()
         posItems = torch.Tensor(S[:, 1]).long()
         negItems = torch.Tensor(S[:, 2]).long()
@@ -55,8 +55,9 @@ class MILK_session(object):
         total_batch = len(users) // self.env.args.batch_size + 1
         all_loss, all_main_bpr_loss, all_maximize_loss = 0., 0., 0.
         all_modality_bpr_loss, all_grad_loss, all_penalty_loss = 0., 0., 0.
+        self.model.set_missing_modality_via_env()
         self.model.pre_epoch_processing()
-        for user, pos_item, neg_item, in mm_loader.minibatch(users,
+        for user, pos_item, neg_item, in dataset_loader.minibatch(users,
                                                              posItems,
                                                              negItems,
                                                              batch_size=self.env.args.batch_size):
@@ -83,12 +84,12 @@ class MILK_session(object):
             
             main_bpr_loss, maximize_mutual_info, minimize_mutual_info = self.model.invariant_learning_emb(user, pos_item, neg_item)
             # print(maximize_mutual_info)
-            # mutual_info = self.env.args.max_info_coeff * (maximize_mutual_info) + self.env.args.min_info_coeff * minimize_mutual_info
+            mutual_info = self.env.args.max_info_coeff * (maximize_mutual_info) + self.env.args.min_info_coeff * minimize_mutual_info
             # mutual_info = self.env.args.max_info_coeff * (maximize_mutual_info)
             # print(mutual_info)
             # # loss = main_bpr_loss + maximize_mutual_info + modality_bpr_loss + reg_loss + penalty_loss
 
-            loss = main_bpr_loss + modality_bpr_loss + reg_loss + penalty_loss
+            loss = main_bpr_loss + mutual_info + modality_bpr_loss + reg_loss + penalty_loss
 
             # print(self.model.id_embedding.weight.mean())
 
@@ -107,27 +108,14 @@ class MILK_session(object):
     def train(self, epochs):
         # self.model.init_mi_estimator()
         for epoch in range(self.env.args.ckpt_start_epoch, epochs):
-            # 热启动的过程
-            # if epoch < warmup_epochs:
-            #     self.model.fusion_linear.weight.requires_grad = False
-            #     for param in self.model.v_gcn.parameters():
-            #         param.requires_grad = True
-            #     for param in self.model.t_gcn.parameters():
-            #         param.requires_grad = True
-            # else:
-            #     self.model.fusion_linear.weight.requires_grad = True
-            #     for param in self.model.v_gcn.parameters():
-            #         param.requires_grad = False
-            #     for param in self.model.t_gcn.parameters():
-            #         param.requires_grad = False
-
+            self.model.train()
             loss, main_bpr_loss, maximize_loss, modality_bpr_loss, reg_loss, penalty_loss, train_time = self.train_epoch()
             # self.model.show_scores()
             print('-' * 30)
             print(
                 f'TRAIN:epoch = {epoch}/{epochs} loss_s1 = {loss:.5f}, main_bpr_loss = {main_bpr_loss:.5f}, modality_bpr_loss = {modality_bpr_loss:.5f}, maximize_loss={maximize_loss:.5f}, penalty_loss = {penalty_loss:.5f}, reg_loss = {reg_loss:.5f},  train_time = {train_time:.2f}')
 
-
+            # self.model.eval()
             if epoch % self.env.args.eva_interval == 0:
                 self.early_stop += self.env.args.eva_interval
                 hr, recall, ndcg, val_time = self.test(mode='test', top_list=eval(self.env.args.topk))
@@ -186,6 +174,7 @@ class MILK_session(object):
 
     def test(self, mode='val', top_list=[50]):
         self.model.eval()
+        self.model.set_missing_modality_via_env()
         t = time.time()
         # user_emb = self.model.user_emb.weight
         # image_feat = self.model.image_feat
