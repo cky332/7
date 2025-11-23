@@ -7,6 +7,7 @@ import torch
 from tqdm import tqdm
 from scipy.sparse import csr_matrix
 from time import time
+import pandas as pd
 
 class Loader4MM(torch.utils.data.Dataset):
     def __init__(self, env):
@@ -17,9 +18,52 @@ class Loader4MM(torch.utils.data.Dataset):
         self.n_user = 0
         self.m_item = 0
 
+
         train_file = os.path.join(self.env.DATA_PATH, 'train.txt')
         val_file = os.path.join(self.env.DATA_PATH, 'val.txt')
         test_file = os.path.join(self.env.DATA_PATH, 'test.txt')
+
+        if not os.path.exists(train_file):
+
+            # Preprocessing the inter file to get train, test, and validation of users and items
+            uid_field = 'userID'
+            iid_field = 'itemID'
+            split = 'x_label'
+            cols = [uid_field, iid_field, split]
+
+            load_inter_file = os.path.join(self.env.DATA_PATH, f"{self.env.args.dataset}.inter")
+
+            inter_df = pd.read_csv(load_inter_file, usecols=cols, sep="\t")
+
+            train_df = inter_df[inter_df['x_label'] == 0]
+            val_df = inter_df[inter_df['x_label'] == 1]
+            test_df = inter_df[inter_df['x_label'] == 2]
+
+
+            train_df_item_set = list(set(train_df['itemID'].unique()))
+            val_df_item_set = list(set(val_df['itemID'].unique()))
+            test_df_item_set = list(set(test_df['itemID'].unique()))
+
+
+            train_data = self.generate_data_file(train_df, 'train')
+            val_data = self.generate_data_file(val_df, 'val')
+            test_data = self.generate_data_file(test_df, 'test')
+
+            with open(train_file, encoding='utf-8', mode='w') as f:
+                for user in list(train_data.keys()):
+                    s = str(user) + ' '
+                    s = s + ' '.join(list(map(lambda x:str(x), train_data[user])))
+                    f.write(s+'\n')
+            with open(val_file, encoding='utf-8', mode='w') as f:
+                for user in list(val_data.keys()):
+                    s = str(user) + ' '
+                    s = s + ' '.join(list(map(lambda x:str(x), val_data[user])))
+                    f.write(s+'\n')
+            with open(test_file, encoding='utf-8', mode='w') as f:
+                for user in list(test_data.keys()):
+                    s = str(user) + ' '
+                    s = s + ' '.join(list(map(lambda x:str(x), test_data[user])))
+                    f.write(s+'\n')
 
         trainUniqueUsers, trainItem, trainUser =[], [], []
         valUniqueUsers, valItem, valUser =[], [], []
@@ -114,6 +158,18 @@ class Loader4MM(torch.utils.data.Dataset):
             self.feature = np.concatenate([self.feature, self.audio_feat], axis=1)
             
 
+    def generate_data_file(self, data, data_file_name):
+        data_set = {}
+        for column_name, item in data.iterrows():
+            user_id = item['userID']
+            item_id = item['itemID']
+            if user_id in data_set:
+                data_set[user_id].append(item_id)
+            else:
+                data_set[user_id] = [item_id]
+        
+        return data_set
+ 
     def getSparseGraph(self):
         print("loading adjacency matrix")
         if self.Graph is None:
@@ -199,6 +255,7 @@ class Loader4MM(torch.utils.data.Dataset):
         test_candidate_data = list(set(self.testItem))
         # print(len(test_candidate_data))
         test_num_missing_entries = int(len(test_candidate_data) * 0.5)
+        np.random.shuffle(test_candidate_data)
         selected_for_test_missing = test_candidate_data[:test_num_missing_entries]
         # "selected_for_test_missing" these sampled items are randomly missing modality feature at inference step.
         self.test_missing_modality_items['items'] = selected_for_test_missing
@@ -209,7 +266,8 @@ class Loader4MM(torch.utils.data.Dataset):
         train_candidate_data = list(set(self.trainItem))
         # print(len(train_candidate_data))
         train_num_missing_entries = int(len(train_candidate_data) * rate)
-        selected_for_train_missing = test_candidate_data[:train_num_missing_entries]
+        np.random.shuffle(train_candidate_data)
+        selected_for_train_missing = train_candidate_data[:train_num_missing_entries]
         # "selected_for_train_missing" these sampled items are randomly missing modality feature at train step.
         self.train_missing_modality_items['items'] = selected_for_train_missing
         self.train_missing_modality_items['indicator'] = protected_indices[selected_for_train_missing]
