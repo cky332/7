@@ -8,6 +8,7 @@ Multimodal recommender systems (MRS) improve recommendation performance by integ
 
 ## Updates
 - Update (November 24, 2025): Fixed the issue caused by the missing training data file, and added data preprocessing and generation functions based on intermediate files.
+- Update (November 24, 2025): The [TikTok](https://drive.google.com/drive/folders/11wEn5k1Kzusj1GkdAlCcfS3GbBWGzFpX?usp=drive_link) dataset has been released. The dataset is sourced from and made publicly available by the [MILK](https://github.com/HaoyueBai98/MILK) work.
 
 
 ## Environment
