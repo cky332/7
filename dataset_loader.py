@@ -211,7 +211,7 @@ class Loader4MM(torch.utils.data.Dataset):
                 print("done split matrix")
             else:
                 self.Graph = self._convert_sp_mat_to_sp_tensor(norm_adj)
-                self.Graph = self.Graph.coalesce().cuda()
+                self.Graph = self.Graph.coalesce().to(self.env.device)
                 print("don't split the matrix")
         return self.Graph
 
@@ -224,7 +224,7 @@ class Loader4MM(torch.utils.data.Dataset):
                 end = self.n_user + self.m_item
             else:
                 end = (i_fold + 1) * fold_len
-            A_fold.append(self._convert_sp_mat_to_sp_tensor(A[start:end]).coalesce().cuda())
+            A_fold.append(self._convert_sp_mat_to_sp_tensor(A[start:end]).coalesce().to(self.env.device))
         return A_fold
 
     def _convert_sp_mat_to_sp_tensor(self, X):

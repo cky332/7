@@ -179,10 +179,10 @@ class MILK_model(torch.nn.Module):
 
 
     def init_mi_estimator(self) :
-        self.item_image_estimator = CLUBSample(self.ori_image_feat.size(1), self.free_emb_dimension, 64).cuda()
-        self.item_text_estimator = CLUBSample(self.ori_text_feat.size(1), self.free_emb_dimension, 64).cuda()
+        self.item_image_estimator = CLUBSample(self.ori_image_feat.size(1), self.free_emb_dimension, 64).to(self.env.device)
+        self.item_text_estimator = CLUBSample(self.ori_text_feat.size(1), self.free_emb_dimension, 64).to(self.env.device)
         if self.env.args.dataset == 'tiktok':
-            self.item_audio_estimator = CLUBSample(self.ori_audio_feat.size(1), self.free_emb_dimension, 64).cuda()
+            self.item_audio_estimator = CLUBSample(self.ori_audio_feat.size(1), self.free_emb_dimension, 64).to(self.env.device)
 
         params = list(self.item_image_estimator.parameters()) + list(self.item_text_estimator.parameters())
 
