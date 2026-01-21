@@ -1,0 +1,23 @@
+# I³-MRec: Invariant Learning with Information Bottleneck for Incomplete Modality Recommendation
+# Python 3.9 required
+
+# Deep Learning
+torch==1.13.0
+torchvision
+torchaudio
+
+# Scientific Computing
+numpy==1.26.4
+numba==0.60.0
+scipy
+
+# Data Processing
+pandas
+tqdm
+
+# Visualization & Logging
+tensorboardX
+
+# Similarity Search (use faiss-gpu if you have CUDA)
+faiss-cpu
+# faiss-gpu  # uncomment this if you have GPU with CUDA
